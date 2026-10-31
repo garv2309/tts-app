@@ -1,0 +1,32 @@
+[project]
+name = "tts-app"
+version = "0.1.0"
+description = "Lecture de texte à voix haute avec des voix neuronales"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "edge-tts>=7.0",
+    # pygame-ce : fork communautaire de pygame, même API, avec des wheels pour Python 3.14
+    "pygame-ce>=2.5",
+    "customtkinter>=5.2",
+    "piper-tts>=1.8.0",
+    "pynput>=1.8.2",
+    "pyperclip>=1.11.0",
+]
+
+[dependency-groups]
+dev = [
+    "pyinstaller>=6.22.3",
+    "pytest>=8.0",
+]
+
+[tool.uv]
+# Application, pas une bibliothèque : uv n'a pas besoin de l'installer comme paquet
+package = false
+
+[tool.pytest.ini_options]
+# Permet aux tests d'importer config et tts depuis la racine du projet
+pythonpath = ["."]
+markers = [
+    "network: tests qui nécessitent une connexion Internet (exclure avec -m \"not network\")",
+]

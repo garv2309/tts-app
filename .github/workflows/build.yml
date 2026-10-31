@@ -1,0 +1,45 @@
+# Construit l'exécutable Windows et l'application macOS sur les machines de GitHub.
+# Lancement : onglet « Actions » du dépôt → « Build » → « Run workflow »,
+# ou automatiquement en poussant un tag (ex. git tag v0.1.0 && git push --tags).
+# Les fichiers .zip sont à télécharger en bas de la page du run (section « Artifacts »).
+name: Build
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v*"]
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        # macos-latest = Mac Apple Silicon (M1/M2/M3…)
+        os: [windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+
+      - name: Installer les dépendances
+        run: uv sync
+
+      # Les voix Piper ne sont pas dans git (trop lourdes) : on les télécharge ici
+      - name: Télécharger les voix hors ligne
+        run: uv run python -m piper.download_voices fr_FR-siwis-medium en_US-lessac-medium --data-dir voices
+
+      - name: Construire
+        run: uv run pyinstaller lecteur_vocal.spec --noconfirm
+
+      - name: Zipper (Windows)
+        if: runner.os == 'Windows'
+        run: Compress-Archive -Path dist/LecteurVocal -DestinationPath LecteurVocal-Windows.zip
+
+      - name: Zipper (macOS)
+        if: runner.os == 'macOS'
+        # ditto conserve les liens symboliques de l'app (un zip classique casserait le .app)
+        run: ditto -c -k --keepParent dist/LecteurVocal.app LecteurVocal-macOS.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: LecteurVocal-${{ runner.os }}
+          path: LecteurVocal-*.zip
