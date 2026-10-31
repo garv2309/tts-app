@@ -50,8 +50,9 @@ jobs:
           import platform, sys, tkinter
           # base_prefix = le Python d'origine du .venv (sys.executable pointerait dans .venv)
           print(sys.base_prefix, sys.version.split()[0], platform.machine(), "Tk", tkinter.TkVersion)
-          if "hostedtoolcache" not in sys.base_prefix:
-              sys.exit("::error::Mauvais Python : il faut celui de setup-python (python.org).")
+          # L'installateur python.org (utilisé par setup-python) installe toujours ici
+          if not sys.base_prefix.startswith("/Library/Frameworks/Python.framework/"):
+              sys.exit("::error::Mauvais Python : il faut celui de python.org (setup-python).")
           if platform.machine() != "arm64":
               sys.exit(f"::error::Architecture {platform.machine()} au lieu de arm64.")
           if tkinter.TkVersion != 8.6:
