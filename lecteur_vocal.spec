@@ -54,6 +54,7 @@ if sys.platform == "darwin":
         name=f"{APP_NAME}.app",
         bundle_identifier="ca.lecteurvocal.app",
         info_plist={
+            "CFBundleName": APP_NAME,
             "CFBundleDisplayName": "Lecteur vocal",
             "NSHighResolutionCapable": True,
         },

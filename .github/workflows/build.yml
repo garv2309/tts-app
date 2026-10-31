@@ -15,30 +15,48 @@ jobs:
       # Un échec sur un système n'annule pas la construction de l'autre
       fail-fast: false
       matrix:
-        # macos-latest = Mac Apple Silicon (M1/M2/M3…)
-        os: [windows-latest, macos-latest]
+        # macos-14 = Mac Apple Silicon (arm64) sous macOS 14 : le plus ancien système visé,
+        # pour que le test de lancement reproduise les Macs de nos utilisateurs
+        os: [windows-latest, macos-14]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v5
       - uses: astral-sh/setup-uv@v7
 
-      # Sur Mac, le Python de Homebrew n'a pas tkinter (il est dans un paquet à part) :
-      # on force le Python téléchargé par uv, qui inclut tkinter. Windows ne change pas.
-      - name: Choisir le Python de uv (macOS)
+      # Sur Mac, Tcl/Tk 9.0 (Python 3.14 de uv ou de Homebrew) plante au démarrage sur macOS 14
+      # (crash dans tkSetMainMenu). Le Python 3.12 de python.org, installé par setup-python,
+      # utilise Tcl/Tk 8.6, stable. Windows garde le Python de .python-version.
+      - name: Installer Python 3.12 de python.org (macOS)
         if: runner.os == 'macOS'
-        run: echo "UV_PYTHON_PREFERENCE=only-managed" >> "$GITHUB_ENV"
+        id: python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Utiliser ce Python avec uv (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          echo "UV_PYTHON=${{ steps.python.outputs.python-path }}" >> "$GITHUB_ENV"
+          echo "UV_PYTHON_PREFERENCE=only-system" >> "$GITHUB_ENV"
 
       - name: Installer les dépendances
         run: uv sync
 
-      # Si tkinter manque, PyInstaller l'exclut sans échouer et l'app plante au lancement :
-      # on préfère arrêter la construction ici avec un message clair.
-      - name: Vérifier tkinter (macOS)
+      # Arrêt immédiat si le Python n'est pas le bon : mieux qu'une app qui plante chez les amis
+      - name: Vérifier Python, arm64 et Tk 8.6 (macOS)
         if: runner.os == 'macOS'
         run: |
-          uv run python -c "import sys, platform; print(sys.executable, platform.machine())"
-          uv run python -c "import tkinter; print('Tcl/Tk', tkinter.Tcl().eval('info patchlevel'))" \
-            || { echo "::error::tkinter est absent de ce Python : l'interface ne pourrait pas s'ouvrir."; exit 1; }
+          uv run python - <<'EOF'
+          import platform, sys, tkinter
+          # base_prefix = le Python d'origine du .venv (sys.executable pointerait dans .venv)
+          print(sys.base_prefix, sys.version.split()[0], platform.machine(), "Tk", tkinter.TkVersion)
+          if "hostedtoolcache" not in sys.base_prefix:
+              sys.exit("::error::Mauvais Python : il faut celui de setup-python (python.org).")
+          if platform.machine() != "arm64":
+              sys.exit(f"::error::Architecture {platform.machine()} au lieu de arm64.")
+          if tkinter.TkVersion != 8.6:
+              sys.exit(f"::error::Tk {tkinter.TkVersion} au lieu de 8.6 : l'app planterait sur macOS 14.")
+          EOF
 
       # Les voix Piper ne sont pas dans git (trop lourdes) : on les télécharge ici
       - name: Télécharger les voix hors ligne
