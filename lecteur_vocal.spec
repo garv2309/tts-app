@@ -42,6 +42,8 @@ exe = EXE(
     exclude_binaries=True,  # mode « dossier » : démarrage rapide, rien à décompresser
     name=APP_NAME,
     console=False,  # pas de fenêtre noire de terminal
+    # Mac : puces Apple (M1/M2/M3). Windows : None = architecture du Python utilisé (inchangé)
+    target_arch="arm64" if sys.platform == "darwin" else None,
 )
 
 coll = COLLECT(exe, a.binaries, a.datas, name=APP_NAME)
