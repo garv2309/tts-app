@@ -1,9 +1,20 @@
 """Raccourci clavier global : fonctionne même quand la fenêtre n'a pas le focus."""
 
+from __future__ import annotations
+
+import sys
 from collections.abc import Callable
+from typing import TYPE_CHECKING
 
 import pyperclip
-from pynput import keyboard
+
+if TYPE_CHECKING:
+    from pynput import keyboard
+
+# Sur macOS 14+, le listener de pynput lit la disposition du clavier (TSMGetInputSourceProperty)
+# depuis son thread : macOS l'interdit hors du thread principal et tue l'application.
+# On n'utilise donc le raccourci global que sur Windows et Linux.
+GLOBAL_HOTKEY_SUPPORTED: bool = sys.platform != "darwin"
 
 
 def read_clipboard() -> str:
@@ -19,6 +30,11 @@ def start_listener(hotkey: str, callback: Callable[[], None]) -> keyboard.Global
 
     Attention : callback s'exécute dans le thread de pynput, il doit rester rapide.
     """
+    if not GLOBAL_HOTKEY_SUPPORTED:
+        raise RuntimeError("Le raccourci global n'est pas disponible sur macOS.")
+    # Import ici : pynput n'est installé que là où le raccourci global est utilisé (pas sur Mac)
+    from pynput import keyboard
+
     listener = keyboard.GlobalHotKeys({hotkey: callback})
     listener.daemon = True
     listener.start()

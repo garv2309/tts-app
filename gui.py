@@ -1,16 +1,25 @@
 """Interface graphique simple (customtkinter)."""
 
+import argparse
 import queue
+import sys
 import threading
 from pathlib import Path
 from tkinter import filedialog
 
 import customtkinter as ctk
 
-from config import DEFAULT_VOICE, HOTKEY, RECOMMENDED_VOICES
-from tts import TTSError, create_engine
+from config import (
+    DEFAULT_VOICE,
+    HOTKEY,
+    MAC_WINDOW_HOTKEYS,
+    MAC_WINDOW_HOTKEY_LABEL,
+    RECOMMENDED_VOICES,
+    SELFTEST_SECONDS,
+)
+from tts import TTSError, create_engine, crash_log
 from tts.file_reader import SUPPORTED_EXTENSIONS, read_document
-from tts.hotkey import read_clipboard, start_listener
+from tts.hotkey import GLOBAL_HOTKEY_SUPPORTED, read_clipboard, start_listener
 from tts.speaker import Speaker
 
 
@@ -33,8 +42,13 @@ class TTSApp(ctk.CTk):
 
         self._build_widgets()
         self.listener = None
-        if enable_hotkey:
+        if enable_hotkey and GLOBAL_HOTKEY_SUPPORTED:
             self.listener = start_listener(HOTKEY, lambda: self.events.put(("hotkey", "")))
+        elif enable_hotkey:
+            # Mac : raccourci de la fenêtre (bind_all = marche aussi quand la zone de texte a le focus).
+            # Le callback tourne dans la boucle Tk : il peut appeler on_hotkey directement.
+            for sequence in MAC_WINDOW_HOTKEYS:
+                self.bind_all(sequence, self._on_window_hotkey)
         self.after(100, self._poll)
 
     # --- Construction de l'interface ---
@@ -83,7 +97,11 @@ class TTSApp(ctk.CTk):
         self.status.grid(row=3, column=0, padx=20, pady=(0, 4), sticky="ew")
         ctk.CTkLabel(
             self,
-            text=f"Astuce : copiez du texte n'importe où puis appuyez sur {HOTKEY}",
+            text=(
+                f"Astuce : copiez du texte n'importe où puis appuyez sur {HOTKEY}"
+                if GLOBAL_HOTKEY_SUPPORTED
+                else f"Astuce : copiez du texte puis, dans cette fenêtre, appuyez sur {MAC_WINDOW_HOTKEY_LABEL}"
+            ),
             anchor="w",
             text_color="gray50",
         ).grid(row=4, column=0, padx=20, pady=(0, 10), sticky="ew")
@@ -154,7 +172,7 @@ class TTSApp(ctk.CTk):
             self._run_in_thread(self._open_worker, Path(filename), status="Ouverture du fichier…")
 
     def on_hotkey(self) -> None:
-        """Raccourci global : arrête la lecture, ou lit le presse-papiers."""
+        """Raccourci clavier : arrête la lecture, ou lit le presse-papiers."""
         if self.busy:
             self.on_stop()
             return
@@ -165,6 +183,11 @@ class TTSApp(ctk.CTk):
         self.textbox.delete("1.0", "end")
         self.textbox.insert("1.0", text)
         self.on_play()
+
+    def _on_window_hotkey(self, _event: object) -> str:
+        """Raccourci de la fenêtre (Mac) ; « break » empêche Tk de traiter la touche ailleurs."""
+        self.on_hotkey()
+        return "break"
 
     # --- Travail en arrière-plan ---
 
@@ -262,11 +285,32 @@ class TTSApp(ctk.CTk):
         super().destroy()
 
 
-def main() -> None:
+def main() -> int:
+    """Lance la fenêtre et renvoie le code de sortie."""
+    log = crash_log.install()
+    parser = argparse.ArgumentParser(description="Lecteur vocal (interface graphique)")
+    parser.add_argument(
+        "--selftest",
+        action="store_true",
+        help=f"Ouvre la fenêtre, attend {SELFTEST_SECONDS} s puis quitte (code 0 si tout va bien)",
+    )
+    # parse_known_args : ignore les arguments ajoutés par le système (ex. -psn_… sur Mac)
+    args, _unknown = parser.parse_known_args()
+
     ctk.set_appearance_mode("system")
     app = TTSApp()
+    if args.selftest:
+        crash_log.logger.info("Selftest : fermeture dans %d s", SELFTEST_SECONDS)
+        app.after(SELFTEST_SECONDS * 1000, app.destroy)
     app.mainloop()
+
+    if args.selftest:
+        if crash_log.error_count:
+            crash_log.logger.error("Selftest ÉCHOUÉ : %d erreur(s), voir %s", crash_log.error_count, log)
+            return 1
+        crash_log.logger.info("Selftest réussi")
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

@@ -26,11 +26,18 @@ a = Analysis(
         # Thèmes et polices de customtkinter
         *collect_data_files("customtkinter"),
     ],
-    # pynput choisit son backend (Windows, macOS, Linux) à l'exécution : PyInstaller ne le voit pas
+    # pynput choisit son backend à l'exécution : PyInstaller ne le voit pas. Sur Mac, pas de pynput.
     hiddenimports=["pynput.keyboard._win32", "pynput.mouse._win32"]
     if sys.platform == "win32"
-    else ["pynput.keyboard._darwin", "pynput.mouse._darwin"],
-    excludes=["piper.train", "pytest", "torch"],
+    else [],
+    excludes=[
+        "piper.train",
+        "pytest",
+        "torch",
+        # Mac : par sécurité, on exclut pynput et pyobjc même s'ils traînent dans l'environnement
+        *(["pynput", "objc", "AppKit", "Foundation", "Quartz", "ApplicationServices", "HIServices"]
+          if sys.platform == "darwin" else []),
+    ],
 )
 
 pyz = PYZ(a.pure)

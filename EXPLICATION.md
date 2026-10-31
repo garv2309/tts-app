@@ -477,6 +477,14 @@ listener.start()
 `main.py` lance la lecture dans un *nouveau* thread, et `gui.py` dépose juste un message dans
 sa file.
 
+⚠️ **Pas sur macOS.** Depuis macOS 14, le listener de pynput lit la disposition du clavier
+(`TSMGetInputSourceProperty`) depuis son thread de fond ; Apple exige que ce soit fait sur le
+thread principal et **tue l'application** (`_dispatch_assert_queue_fail`). Sur Mac,
+`GLOBAL_HOTKEY_SUPPORTED` vaut donc `False` : `gui.py` utilise à la place un raccourci Tk
+(`bind_all("<Command-l>", ...)`), actif seulement quand la fenêtre a le focus. pynput n'est même
+pas installé sur Mac (`sys_platform != 'darwin'` dans `pyproject.toml`) et il est importé
+*dans* `start_listener()`, pas en haut du fichier.
+
 > Anecdote de test : pynput ignore volontairement les touches *simulées* par un programme
 > (`if not injected`). Pour tester le raccourci, on a donc envoyé les événements directement à
 > son gestionnaire.

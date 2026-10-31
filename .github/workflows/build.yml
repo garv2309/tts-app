@@ -2,6 +2,9 @@
 # Lancement : onglet « Actions » du dépôt → « Build » → « Run workflow »,
 # ou automatiquement en poussant un tag (ex. git tag v0.1.0 && git push --tags).
 # Les fichiers .zip sont à télécharger en bas de la page du run (section « Artifacts »).
+# Avec un tag, ils sont aussi publiés dans une GitHub Release, avec un lien fixe :
+#   https://github.com/garv2309/tts-app/releases/latest/download/LecteurVocal-macOS.zip
+#   https://github.com/garv2309/tts-app/releases/latest/download/LecteurVocal-Windows.zip
 name: Build
 
 on:
@@ -66,23 +69,39 @@ jobs:
       - name: Construire
         run: uv run pyinstaller lecteur_vocal.spec --noconfirm
 
-      # Une appli fenêtrée qui plante ne dit rien : on la lance pour de vrai et on vérifie
-      # qu'elle tourne encore après 20 s ; sinon on affiche sa sortie et le rapport de crash.
-      - name: Tester le lancement (macOS)
+      # L'appli construite s'ouvre pour de vrai avec --selftest : fenêtre, moteurs, raccourci…
+      # puis se ferme seule après 5 s. Code ≠ 0 (exception ou plantage) = le workflow échoue.
+      # Les exceptions sont dans le fichier log ; un plantage natif, dans le rapport de crash.
+      - name: Selftest de l'application (macOS)
         if: runner.os == 'macOS'
+        timeout-minutes: 3
         run: |
-          dist/LecteurVocal.app/Contents/MacOS/LecteurVocal > launch.log 2>&1 &
-          PID=$!
-          sleep 20
-          cat launch.log
-          if kill -0 "$PID" 2>/dev/null; then
-            echo "L'application tourne toujours : OK"
-            kill "$PID"
-          else
-            echo "L'application s'est arrêtée toute seule"
+          set +e
+          dist/LecteurVocal.app/Contents/MacOS/LecteurVocal --selftest
+          CODE=$?
+          echo "--- ~/Library/Logs/LecteurVocal.log ---"
+          cat ~/Library/Logs/LecteurVocal.log
+          if [ "$CODE" -ne 0 ]; then
+            echo "::error::Selftest échoué (code $CODE)"
             for f in ~/Library/Logs/DiagnosticReports/LecteurVocal*; do [ -f "$f" ] && head -120 "$f"; done
             exit 1
           fi
+
+      - name: Selftest de l'application (Windows)
+        if: runner.os == 'Windows'
+        timeout-minutes: 3
+        run: |
+          # Appli fenêtrée : Start-Process -Wait attend sa fin et récupère son code de sortie
+          $p = Start-Process dist/LecteurVocal/LecteurVocal.exe -ArgumentList "--selftest" -Wait -PassThru
+          $log = "dist/LecteurVocal/LecteurVocal.log"
+          Write-Output "--- LecteurVocal.log ---"
+          Get-Content $log -Encoding utf8
+          # Le log du test ne doit pas partir dans le zip des amis
+          Remove-Item $log
+          if ($p.ExitCode -ne 0) {
+            Write-Output "::error::Selftest échoué (code $($p.ExitCode))"
+            exit 1
+          }
 
       - name: Zipper (Windows)
         if: runner.os == 'Windows'
@@ -97,3 +116,20 @@ jobs:
         with:
           name: LecteurVocal-${{ runner.os }}
           path: LecteurVocal-*.zip
+
+  # Publie les zips dans une GitHub Release, seulement quand on pousse un tag (ex. v0.2.0)
+  # et seulement si les deux builds (et leurs selftests) ont réussi.
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # nécessaire pour créer une release
+    steps:
+      - uses: actions/download-artifact@v5
+        with:
+          merge-multiple: true  # met les deux zips dans le même dossier
+      - name: Créer la release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" LecteurVocal-*.zip --repo "$GITHUB_REPOSITORY" --title "Lecteur vocal $GITHUB_REF_NAME" --generate-notes

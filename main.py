@@ -8,7 +8,7 @@ from pathlib import Path
 from config import DEFAULT_PITCH, DEFAULT_RATE, DEFAULT_VOICE, DEFAULT_VOLUME, HOTKEY
 from tts import PiperEngine, TTSEngine, TTSError, create_engine
 from tts.file_reader import read_document
-from tts.hotkey import read_clipboard, start_listener
+from tts.hotkey import GLOBAL_HOTKEY_SUPPORTED, read_clipboard, start_listener
 from tts.player import play
 from tts.speaker import Speaker
 
@@ -116,6 +116,10 @@ def main() -> int:
             return 0
 
         if args.hotkey:
+            if not GLOBAL_HOTKEY_SUPPORTED:
+                print("Erreur : le raccourci global n'est pas disponible sur macOS (macOS 14+ l'interdit).")
+                print("Utilisez l'interface graphique : uv run gui.py, puis ⌘L dans la fenêtre.")
+                return 1
             hotkey_mode(speaker, args)
         elif args.file:
             speak(engine, speaker, read_document(args.file), args)

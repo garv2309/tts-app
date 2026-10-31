@@ -42,6 +42,13 @@ CHUNK_MAX_CHARS: int = 150
 
 # --- Raccourci global (syntaxe pynput) : lit le presse-papiers, ou arrête la lecture ---
 HOTKEY: str = "<ctrl>+<alt>+l"
+# Sur Mac, pas de raccourci global (voir tts/hotkey.py) : raccourci Tk, actif quand la fenêtre a le focus
+# Deux variantes : Tk distingue « l » et « L » (Verr. Maj activé)
+MAC_WINDOW_HOTKEYS: tuple[str, ...] = ("<Command-l>", "<Command-L>")
+MAC_WINDOW_HOTKEY_LABEL: str = "⌘L"
+
+# --selftest : durée pendant laquelle la fenêtre reste ouverte avant de se fermer toute seule
+SELFTEST_SECONDS: int = 5
 
 # Voix proposées dans le menu de l'interface (toutes les voix restent utilisables avec --voice)
 RECOMMENDED_VOICES: list[str] = [

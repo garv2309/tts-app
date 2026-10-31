@@ -42,7 +42,8 @@ uv run main.py --file texte.txt --save output/lecture.mp3
 uv run main.py --file cours.pdf    # aussi .md et .docx
 uv run main.py --list-voices
 uv run main.py --offline "Toujours la voix Piper"
-uv run main.py --hotkey            # attend Ctrl+Alt+L en arrière-plan
+uv run main.py --hotkey            # attend Ctrl+Alt+L en arrière-plan (Windows/Linux)
+uv run gui.py --selftest           # ouvre la fenêtre 5 s puis quitte (code 0 = OK)
 uv run main.py                     # mode interactif, 'quit' pour sortir
 ```
 
@@ -68,11 +69,24 @@ Exécuter quand même**.
 workflow `.github/workflows/build.yml` construit les deux versions sur les serveurs de GitHub :
 poussez le projet sur GitHub, puis **Actions → Build → Run workflow**, et téléchargez les zips
 dans la section *Artifacts*. (Sur un Mac, `uv sync` puis la même commande PyInstaller marche aussi.)
+Chaque appli construite est lancée avec `--selftest` : si elle plante, le workflow échoue.
+
+**Publier une version (lien fixe pour les amis)** : pousser un tag, par exemple
+`git tag v0.2.0 && git push origin v0.2.0`. Les zips sont publiés dans une GitHub Release, et ces
+liens pointent toujours vers la dernière version :
+
+- macOS : https://github.com/garv2309/tts-app/releases/latest/download/LecteurVocal-macOS.zip
+- Windows : https://github.com/garv2309/tts-app/releases/latest/download/LecteurVocal-Windows.zip
+
+(Le dépôt doit être public pour que les amis puissent télécharger sans compte.)
 
 Sur Mac, l'appli n'est pas signée par Apple : la première fois, **clic droit sur l'app → Ouvrir →
 Ouvrir**. Si macOS dit que l'app « est endommagée », lancer dans le Terminal :
-`xattr -cr /chemin/vers/LecteurVocal.app`. Pour le raccourci global, autoriser l'app dans
-**Réglages Système → Confidentialité et sécurité → Accessibilité**.
+`xattr -cr /chemin/vers/LecteurVocal.app`. Sur Mac, pas de raccourci global (macOS 14+ fait
+planter pynput) : appuyer sur **⌘L** dans la fenêtre pour lire le presse-papiers.
+
+**En cas de problème**, les erreurs sont écrites dans un fichier log :
+`~/Library/Logs/LecteurVocal.log` sur Mac, `LecteurVocal.log` à côté de `LecteurVocal.exe` sur Windows.
 
 ## Tests
 

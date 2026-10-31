@@ -45,7 +45,8 @@ tts-app/
 │   ├── text_utils.py    # Découpage du texte en phrases / morceaux
 │   ├── file_reader.py   # Extraction du texte des fichiers (txt, md, pdf, docx)
 │   ├── speaker.py       # Lecture par morceaux (synthèse du suivant pendant la lecture)
-│   ├── hotkey.py        # Raccourci clavier global + presse-papiers
+│   ├── hotkey.py        # Raccourci clavier global + presse-papiers (pas sur macOS)
+│   ├── crash_log.py     # Exceptions non gérées → fichier LecteurVocal.log
 │   └── player.py        # Lecture audio
 ├── config.py            # Voix par défaut, vitesse, dossier de sortie, raccourci
 ├── voices/              # Modèles Piper .onnx (ignoré par git)
@@ -98,6 +99,7 @@ uv run main.py "Texte à lire"
 uv run main.py --hotkey          # Ctrl+Alt+L lit le presse-papiers
 uv run main.py --list-voices
 uv run gui.py
+uv run gui.py --selftest         # ouvre la fenêtre 5 s puis quitte (code 0 = OK)
 
 # Tests
 uv run pytest
