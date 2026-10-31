@@ -2,6 +2,7 @@
 
 import pytest
 
+from config import RECOMMENDED_VOICES
 from tts import EdgeEngine, TTSError
 
 
@@ -39,6 +40,13 @@ def test_synthesize_creates_mp3(engine: EdgeEngine, tmp_path) -> None:
 @pytest.mark.network
 def test_list_voices_contains_french(engine: EdgeEngine) -> None:
     assert "fr-CA-AntoineNeural" in engine.list_voices()
+
+
+@pytest.mark.network
+def test_recommended_voices_exist(engine: EdgeEngine) -> None:
+    # Protège contre une faute de frappe dans la liste du menu de l'interface
+    missing = set(RECOMMENDED_VOICES) - set(engine.list_voices())
+    assert not missing
 
 
 @pytest.mark.network

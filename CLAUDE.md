@@ -18,7 +18,7 @@ Langue principale : **français** (priorité aux voix québécoises `fr-CA`, ave
 
 - **Python 3.10+**
 - **Moteur TTS principal : `edge-tts`** (voix neuronales Microsoft, gratuit, sans clé API, nécessite Internet)
-  - Voix recommandées : `fr-CA-AntoineNeural`, `fr-CA-JeanNeural`, `fr-CA-SylvieNeural`, `fr-FR-HenriNeural`, `fr-FR-DeniseNeural`, `en-US-GuyNeural`, `en-GB-RyanNeural`
+  - Voix recommandées : `fr-CA-AntoineNeural`, `fr-CA-JeanNeural`, `fr-CA-ThierryNeural`, `fr-CA-SylvieNeural`, `fr-FR-HenriNeural`, `fr-FR-DeniseNeural`, `fr-FR-VivienneMultilingualNeural`, `fr-CH-ArianeNeural`, `en-US-GuyNeural`, `en-GB-RyanNeural`, `en-US-JennyNeural`
 - **Moteur hors ligne (fallback) : `piper-tts`**, utilisé quand il n'y a pas de connexion
 - **Lecture audio : `pygame`** (lecture des mp3, compatible Windows/macOS/Linux)
 - **Interface graphique (phase 2) : `customtkinter`**
@@ -43,6 +43,7 @@ tts-app/
 │   ├── piper_engine.py  # Implémentation Piper (hors ligne)
 │   ├── fallback.py      # Bascule automatique edge-tts → Piper sans Internet
 │   ├── text_utils.py    # Découpage du texte en phrases / morceaux
+│   ├── file_reader.py   # Extraction du texte des fichiers (txt, md, pdf, docx)
 │   ├── speaker.py       # Lecture par morceaux (synthèse du suivant pendant la lecture)
 │   ├── hotkey.py        # Raccourci clavier global + presse-papiers
 │   └── player.py        # Lecture audio

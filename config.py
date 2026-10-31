@@ -43,12 +43,20 @@ CHUNK_MAX_CHARS: int = 150
 # --- Raccourci global (syntaxe pynput) : lit le presse-papiers, ou arrête la lecture ---
 HOTKEY: str = "<ctrl>+<alt>+l"
 
+# Voix proposées dans le menu de l'interface (toutes les voix restent utilisables avec --voice)
 RECOMMENDED_VOICES: list[str] = [
-    "fr-CA-AntoineNeural",
-    "fr-CA-JeanNeural",
-    "fr-CA-SylvieNeural",
-    "fr-FR-HenriNeural",
-    "fr-FR-DeniseNeural",
-    "en-US-GuyNeural",
-    "en-GB-RyanNeural",
+    # Québec (Sylvie est la seule voix féminine fr-CA du service)
+    "fr-CA-AntoineNeural",  # homme
+    "fr-CA-JeanNeural",  # homme
+    "fr-CA-ThierryNeural",  # homme
+    "fr-CA-SylvieNeural",  # femme
+    # France et Suisse
+    "fr-FR-HenriNeural",  # homme
+    "fr-FR-DeniseNeural",  # femme
+    "fr-FR-VivienneMultilingualNeural",  # femme
+    "fr-CH-ArianeNeural",  # femme
+    # Anglais
+    "en-US-GuyNeural",  # homme
+    "en-GB-RyanNeural",  # homme
+    "en-US-JennyNeural",  # femme
 ]
