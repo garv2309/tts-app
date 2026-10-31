@@ -18,9 +18,10 @@ jobs:
       # Un échec sur un système n'annule pas la construction de l'autre
       fail-fast: false
       matrix:
-        # macos-14 = Mac Apple Silicon (arm64) sous macOS 14 : le plus ancien système visé,
-        # pour que le test de lancement reproduise les Macs de nos utilisateurs
-        os: [windows-latest, macos-14]
+        # macos-15 = Mac Apple Silicon (arm64). GitHub retire macos-14 le 2 novembre 2026.
+        # L'app reste compatible macOS 14 : c'est le Python python.org (compatible macOS 11+)
+        # qui fixe la version minimale, pas la version du Mac qui construit.
+        os: [windows-latest, macos-15]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v5
