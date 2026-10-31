@@ -7,6 +7,7 @@ from pathlib import Path
 
 from config import DEFAULT_PITCH, DEFAULT_RATE, DEFAULT_VOICE, DEFAULT_VOLUME, HOTKEY
 from tts import PiperEngine, TTSEngine, TTSError, create_engine
+from tts.file_reader import read_document
 from tts.hotkey import read_clipboard, start_listener
 from tts.player import play
 from tts.speaker import Speaker
@@ -16,7 +17,7 @@ def parse_args() -> argparse.Namespace:
     """Définit et lit les options de la ligne de commande."""
     parser = argparse.ArgumentParser(description="Lit du texte à voix haute.")
     parser.add_argument("text", nargs="?", help="Texte à lire (sinon mode interactif)")
-    parser.add_argument("--file", type=Path, help="Fichier texte à lire")
+    parser.add_argument("--file", type=Path, help="Fichier à lire (.txt, .md, .pdf, .docx)")
     parser.add_argument("--voice", default=DEFAULT_VOICE, help="Nom de la voix")
     # Valeurs négatives : écrire --rate=-10% (sinon argparse croit à une option)
     parser.add_argument("--rate", default=DEFAULT_RATE, help="Vitesse, ex. +10%% ou --rate=-10%%")
@@ -117,12 +118,7 @@ def main() -> int:
         if args.hotkey:
             hotkey_mode(speaker, args)
         elif args.file:
-            try:
-                text = args.file.read_text(encoding="utf-8")
-            except OSError:
-                print(f"Erreur : impossible de lire le fichier « {args.file} ».")
-                return 1
-            speak(engine, speaker, text, args)
+            speak(engine, speaker, read_document(args.file), args)
         elif args.text is not None:
             speak(engine, speaker, args.text, args)
         else:

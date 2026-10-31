@@ -9,6 +9,7 @@ import customtkinter as ctk
 
 from config import DEFAULT_VOICE, HOTKEY, RECOMMENDED_VOICES
 from tts import TTSError, create_engine
+from tts.file_reader import SUPPORTED_EXTENSIONS, read_document
 from tts.hotkey import read_clipboard, start_listener
 from tts.speaker import Speaker
 
@@ -62,8 +63,10 @@ class TTSApp(ctk.CTk):
 
         buttons = ctk.CTkFrame(self, fg_color="transparent")
         buttons.grid(row=2, column=0, padx=16, pady=8, sticky="ew")
-        buttons.grid_columnconfigure((0, 1, 2, 3), weight=1)
+        buttons.grid_columnconfigure((0, 1, 2, 3, 4), weight=1)
 
+        self.open_button = ctk.CTkButton(buttons, text="📂 Ouvrir", command=self.on_open)
+        self.open_button.grid(row=0, column=4, padx=4, sticky="ew")
         self.play_button = ctk.CTkButton(buttons, text="▶ Lire", command=self.on_play)
         self.play_button.grid(row=0, column=0, padx=4, sticky="ew")
         self.pause_button = ctk.CTkButton(
@@ -138,6 +141,18 @@ class TTSApp(ctk.CTk):
             text = self.textbox.get("1.0", "end").strip()
             self._run_in_thread(self._save_worker, text, self._settings(), Path(filename))
 
+    def on_open(self) -> None:
+        """Charge le texte d'un fichier dans la zone de texte (sans lancer la lecture)."""
+        if self.busy:
+            return
+        filename = filedialog.askopenfilename(
+            title="Ouvrir un fichier à lire",
+            filetypes=[("Documents", SUPPORTED_EXTENSIONS), ("Tous les fichiers", "*")],
+        )
+        if filename:
+            # Un gros PDF peut prendre quelques secondes : thread pour ne pas figer la fenêtre
+            self._run_in_thread(self._open_worker, Path(filename), status="Ouverture du fichier…")
+
     def on_hotkey(self) -> None:
         """Raccourci global : arrête la lecture, ou lit le presse-papiers."""
         if self.busy:
@@ -162,10 +177,10 @@ class TTSApp(ctk.CTk):
             "volume": f"{int(self.volume.get()):+d}%",
         }
 
-    def _run_in_thread(self, target, *args) -> None:  # noqa: ANN001
+    def _run_in_thread(self, target, *args, status: str = "Synthèse en cours…") -> None:  # noqa: ANN001
         """Lance target dans un thread pour ne pas figer la fenêtre."""
         self._set_busy(True)
-        self._set_status("Synthèse en cours…")
+        self._set_status(status)
         threading.Thread(target=target, args=args, daemon=True).start()
 
     def _read_worker(self, text: str, settings: dict[str, str]) -> None:
@@ -187,6 +202,14 @@ class TTSApp(ctk.CTk):
         except TTSError as exc:
             self.events.put(("error", str(exc)))
 
+    def _open_worker(self, path: Path) -> None:
+        try:
+            text = read_document(path)
+            self.events.put(("loaded", text))
+            self.events.put(("done", f"« {path.name} » chargé ({len(text)} caractères) : cliquez sur ▶ Lire."))
+        except TTSError as exc:
+            self.events.put(("error", str(exc)))
+
     def _poll(self) -> None:
         """Traite toutes les 100 ms les messages venus des autres threads."""
         while True:
@@ -200,6 +223,9 @@ class TTSApp(ctk.CTk):
                 self.progress = payload
                 if not self.speaker.paused:
                     self._set_status(self._progress_text())
+            elif kind == "loaded":
+                self.textbox.delete("1.0", "end")
+                self.textbox.insert("1.0", payload)
             elif kind == "info":
                 self._set_status(payload)
             elif kind == "error":
@@ -221,6 +247,7 @@ class TTSApp(ctk.CTk):
         state = "disabled" if busy else "normal"
         self.play_button.configure(state=state)
         self.save_button.configure(state=state)
+        self.open_button.configure(state=state)
         if not busy:
             # La pause n'a de sens que pendant une lecture
             self.pause_button.configure(state="disabled", text="⏸ Pause")

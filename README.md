@@ -25,6 +25,10 @@ uv run gui.py
 le volume : à la reprise, la phrase en cours est relue depuis son début avec les nouveaux réglages.
 Sans changement, la lecture reprend exactement où elle était.
 
+**📂 Ouvrir** charge le texte d'un fichier `.txt`, `.md`, `.pdf` ou `.docx` (Word) dans la zone de
+texte ; on peut le relire ou le modifier avant de cliquer sur **▶ Lire**. Les PDF scannés (images
+sans texte sélectionnable) ne peuvent pas être lus.
+
 Copiez du texte n'importe où puis appuyez sur **Ctrl+Alt+L** : il est collé dans la fenêtre et lu.
 Un deuxième appui arrête la lecture.
 
@@ -35,6 +39,7 @@ uv run main.py "Bonjour, je suis votre assistant."
 uv run main.py "Hello there" --voice en-GB-RyanNeural
 uv run main.py "Plus vite" --rate=+20% --pitch=-5Hz
 uv run main.py --file texte.txt --save output/lecture.mp3
+uv run main.py --file cours.pdf    # aussi .md et .docx
 uv run main.py --list-voices
 uv run main.py --offline "Toujours la voix Piper"
 uv run main.py --hotkey            # attend Ctrl+Alt+L en arrière-plan

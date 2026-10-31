@@ -41,7 +41,7 @@ jobs:
         # ditto conserve les liens symboliques de l'app (un zip classique casserait le .app)
         run: ditto -c -k --keepParent dist/LecteurVocal.app LecteurVocal-macOS.zip
 
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v6
         with:
           name: LecteurVocal-${{ runner.os }}
           path: LecteurVocal-*.zip
